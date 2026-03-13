@@ -1,0 +1,202 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a fun, engaging, and personalized weather email for today based on this data:\n\n{{ JSON.stringify($json, null, 2) }}\n\nWrite an email that:\n1. Has a catchy, weather-related subject line\n2. Describes how the day will feel (temperature, conditions)\n3. Gives specific outfit recommendations\n4. Mentions any weather changes expected during the day\n5. Has a fun, upbeat tone\n6. Is formatted as HTML with proper structure\n\nReturn ONLY the HTML email content, ready to send.",
+        "options": {
+          "systemMessage": "You are a friendly weather assistant who writes fun, personalized daily weather emails. You take weather data and transform it into engaging content that helps people plan their day and choose appropriate clothing."
+        }
+      },
+      "id": "83031bf1-a8f0-4e03-a9e6-580d0ffd1a56",
+      "name": "Create Fun Weather Email",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "2b5a6c16-54a8-4a1f-af8a-0aa3569c5a0a",
+      "name": "Gemini Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        992,
+        528
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "PgsE0NCFy5Jr3sfJ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "codinplus31@gmail.com",
+        "subject": "={{ $now.toFormat(\"MMMM d\") }} Weather Report ☀️",
+        "message": "={{ $json.output }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "8b97e94f-8e2d-4527-93fc-2e18badb1b54",
+      "name": "Send Weather Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        304
+      ],
+      "webhookId": "818ca2c1-121b-467b-a648-b3c9642a3d41",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4SfH1A7dXN8f6wp0",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $input.first().json.data;\n\nconst tempMatch = html.match(/(\\d+)°C/);\nconst descMatch = html.match(/aria-label=\"([^\"]*weather[^\"]*)\"/)\nconst humidityMatch = html.match(/(\\d+)%/);\nconst windMatch = html.match(/(\\d+)\\s*km\\/h/);\n\nreturn [{ json: {\n  location: \"Lagos\",\n  country: \"Nigeria\",\n  current: {\n    temp: tempMatch ? tempMatch[1] + \"°C\" : \"N/A\",\n    description: descMatch ? descMatch[1] : \"N/A\",\n    humidity: humidityMatch ? humidityMatch[1] + \"%\" : \"N/A\",\n    windSpeed: windMatch ? windMatch[1] + \" km/h\" : \"N/A\"\n  }\n}}];"
+      },
+      "id": "00329589-6f15-4913-b4ac-f4a5daf05253",
+      "name": "Parse Weather Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.google.com/search?q=weather+Lagos+Nigeria",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "cc765e32-dda1-4703-aaa1-efd8b033e6e9",
+      "name": "Get Weather from Google",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 23
+            }
+          ]
+        }
+      },
+      "id": "5ffc0fe6-1a8f-49bf-a9b9-6c72fa130094",
+      "name": "Every 24 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Create Fun Weather Email": {
+      "main": [
+        [
+          {
+            "node": "Send Weather Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Create Fun Weather Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Weather Data": {
+      "main": [
+        [
+          {
+            "node": "Create Fun Weather Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Weather from Google": {
+      "main": [
+        [
+          {
+            "node": "Parse Weather Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 24 hours": {
+      "main": [
+        [
+          {
+            "node": "Get Weather from Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "5a73978c-0a91-4332-94aa-083d038dae41",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4047df8a4694f3a426b64e2433ef7e26e13a7c14de7fc20b575562feee09bbca"
+  },
+  "id": "0434zh2gbhi79YCn",
+  "tags": []
+}
